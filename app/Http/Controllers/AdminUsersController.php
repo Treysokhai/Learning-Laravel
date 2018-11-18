@@ -4,11 +4,15 @@ namespace App\Http\Controllers;
 use App\User;
 use App\Role;
 use App\Photo;
+use Session;
 use Illuminate\Http\Request;
 use App\Http\Requests\UsersRequest;
+use App\Http\Requests\UsersEditRequest;
 use Illuminate\Support\Facades\Validator;
 class AdminUsersController extends Controller
 {
+
+    private $listUsersPath = "/admin/users";
     /**
      * Display a listing of the resource.
      *
@@ -50,6 +54,7 @@ class AdminUsersController extends Controller
         }
         $input['password'] = bcrypt($request->password);
         User::create($input);
+        return redirect($this->listUsersPath);
     }
 
     /**
@@ -60,7 +65,7 @@ class AdminUsersController extends Controller
      */
     public function show($id)
     {
-        //
+        
     }
 
     /**
@@ -69,9 +74,10 @@ class AdminUsersController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function edit($id)
+    public function edit(User $user)
     {
-        //
+        $roles = Role::all();
+        return view('admin.users.edit', compact(['user', 'roles']));
     }
 
     /**
@@ -81,9 +87,28 @@ class AdminUsersController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(UsersEditRequest $request, User $user)
     {
-        //
+        //$user = User::findOrFail($id);
+        $input = $request->all();
+        if(trim($request->password) == '')
+        {
+            $input['password'] = $user->password;
+        }
+        else
+        {
+            $input['password'] = bcrypt($request->password);
+        }
+        if($request->hasFile('photo_id'))
+        {
+            $file = $request->file('photo_id');
+            $name = time().$file->getClientOriginalName();
+            $file->move('images', $name);
+            $photo = Photo::create(['file'=> $name]);
+            $input['photo_id'] = $photo->id;
+        }
+        $user->update($input);
+        return redirect($this->listUsersPath);
     }
 
     /**
@@ -92,8 +117,11 @@ class AdminUsersController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy(User $user)
     {
-        //
+        unlink(public_path().$user->photo->file);
+        $user->delete();
+        Session::flash('status', 'User has been deleted');
+        return redirect($this->listUsersPath);
     }
 }

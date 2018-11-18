@@ -18,5 +18,10 @@ Route::get('/', function () {
 Auth::routes();
 
 Route::get('/home', 'HomeController@index')->name('home');
+Route::middleware(['admin'])->group(function () {
+    Route::resource('/admin/users', 'AdminUsersController');
+});
+Route::get('/errors/404', function(){
+    return view('errors.404');
+});
 
-Route::resource('/admin/users', 'AdminUsersController');
